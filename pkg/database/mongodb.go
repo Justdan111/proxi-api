@@ -21,15 +21,15 @@ func NewMongoDB(uri, dbName string) *MongoDB {
     clientOptions := options.Client().ApplyURI(uri)
     client, err := mongo.Connect(ctx, clientOptions)
     if err != nil {
-        log.Fatalf("❌ Failed to connect to MongoDB: %v", err)
+        log.Fatalf(" Failed to connect to MongoDB: %v", err)
     }
 
     // Ping to confirm connection
     if err := client.Ping(ctx, nil); err != nil {
-        log.Fatalf("❌ MongoDB ping failed: %v", err)
+        log.Fatalf(" MongoDB ping failed: %v", err)
     }
 
-    log.Println("✅ Connected to MongoDB")
+    log.Println(" Connected to MongoDB")
 
     return &MongoDB{
         Client: client,
