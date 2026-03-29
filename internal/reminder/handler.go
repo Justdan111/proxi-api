@@ -8,8 +8,8 @@ import (
     "github.com/go-chi/chi/v5"
     "github.com/go-playground/validator/v10"
 
-    "github.com/yourusername/proxi-backend/internal/auth"
-    "github.com/yourusername/proxi-backend/pkg/response"
+    "github.com/Justdan111/proxi-api/internal/auth"
+    "github.com/Justdan111/proxi-api/pkg/response"
 )
 
 type Handler struct {
