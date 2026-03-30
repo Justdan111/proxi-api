@@ -18,6 +18,8 @@ import (
     "github.com/Justdan111/proxi-api/internal/config"
     "github.com/Justdan111/proxi-api/internal/user"
     "github.com/Justdan111/proxi-api/pkg/database"
+	"github.com/Justdan111/proxi-api/internal/reminder"
+    "github.com/Justdan111/proxi-api/internal/activity"
 )
 
 func main() {
@@ -32,6 +34,15 @@ func main() {
     userRepo    := user.NewRepository(db.DB)
     authService := auth.NewService(userRepo, cfg.JWTSecret, cfg.JWTExpiryHours)
     authHandler := auth.NewHandler(authService)
+
+	reminderRepo    := reminder.NewRepository(db.DB)
+	reminderService := reminder.NewService(reminderRepo)
+	reminderHandler := reminder.NewHandler(reminderService)
+
+	activityRepo    := activity.NewRepository(db.DB)
+	activityService := activity.NewService(activityRepo)
+	activityHandler := activity.NewHandler(activityService)
+
 
     // Set up router
     r := chi.NewRouter()
@@ -64,8 +75,24 @@ func main() {
         r.Group(func(r chi.Router) {
             r.Use(authService.Middleware)
             r.Get("/me", authHandler.GetMe)
-        })
+			
+			r.Route("/api/reminders", func(r chi.Router) {
+        r.Get("/",           reminderHandler.GetAll)
+        r.Post("/",          reminderHandler.Create)
+        r.Get("/{id}",       reminderHandler.GetOne)
+        r.Put("/{id}",       reminderHandler.Update)
+        r.Patch("/{id}/toggle", reminderHandler.Toggle)
+        r.Delete("/{id}",    reminderHandler.Delete)
     })
+
+    // Activities
+    r.Route("/api/activities", func(r chi.Router) {
+        r.Get("/",  activityHandler.GetAll)
+        r.Post("/", activityHandler.Log)
+    })
+})
+        })
+
 
     // Start server
     addr := fmt.Sprintf(":%s", cfg.Port)
