@@ -107,7 +107,7 @@ func main() {
 
 	// Graceful shutdown
 	go func() {
-		log.Printf("🚀 Proxi API running on %s", addr)
+		log.Printf(" Proxi API running on %s", addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server error: %v", err)
 		}
@@ -121,5 +121,5 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	server.Shutdown(ctx)
-	log.Println("✅ Server stopped")
+	log.Println(" Server stopped")
 }
