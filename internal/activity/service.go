@@ -10,7 +10,7 @@ import (
 var ErrInvalidID = errors.New("invalid id")
 
 type Service struct {
-	repo *Repository
+	repo *Repository 
 }
 
 func NewService(repo *Repository) *Service {
