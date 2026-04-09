@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  api:
+    restart: always
+    environment:
+      - APP_ENV=production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # No port exposure in prod — goes through reverse proxy
+
+  mongo:
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Remove mongo-express in production
+  mongo-express:
+    profiles:
+      - dev  # only starts when --profile dev is passed
