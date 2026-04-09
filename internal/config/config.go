@@ -27,10 +27,11 @@ func Load() *Config {
 
 	appEnv := strings.ToLower(getEnv("APP_ENV", "development"))
 	isDevLike := appEnv == "development" || appEnv == "dev" || appEnv == "local" || appEnv == "test"
+	isRailway := os.Getenv("RAILWAY_ENVIRONMENT") != "" || os.Getenv("RAILWAY_PROJECT_ID") != ""
 
 	mongoURI := getEnv("MONGODB_URI", "")
 	if mongoURI == "" {
-		if isDevLike {
+		if isDevLike && !isRailway {
 			mongoURI = "mongodb://localhost:27017"
 			log.Println("MONGODB_URI not set, using local default mongodb://localhost:27017")
 		} else {
@@ -40,7 +41,7 @@ func Load() *Config {
 
 	jwtSecret := getEnv("JWT_SECRET", "")
 	if jwtSecret == "" {
-		if isDevLike {
+		if isDevLike && !isRailway {
 			jwtSecret = "change-me"
 			log.Println("JWT_SECRET not set, using development fallback")
 		} else {
