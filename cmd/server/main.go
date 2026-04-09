@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"go.uber.org/zap"
 
 	"github.com/Justdan111/proxi-api/internal/activity"
 	"github.com/Justdan111/proxi-api/internal/auth"
@@ -20,11 +20,20 @@ import (
 	"github.com/Justdan111/proxi-api/internal/reminder"
 	"github.com/Justdan111/proxi-api/internal/user"
 	"github.com/Justdan111/proxi-api/pkg/database"
+	"github.com/Justdan111/proxi-api/pkg/logger"
+	"github.com/Justdan111/proxi-api/pkg/response"
 )
 
 func main() {
 	// Load config
 	cfg := config.Load()
+    logger.Init(cfg.AppEnv)
+    defer logger.Sync()
+
+    logger.Log.Info("Starting Proxi API",
+        zap.String("env", cfg.AppEnv),
+        zap.String("port", cfg.Port),
+    )
 
 	// Connect to MongoDB
 	db := database.NewMongoDB(cfg.MongoURI, cfg.MongoDBName)
@@ -59,10 +68,24 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"status":"ok"}`))
-	})
+    // Ping MongoDB
+    ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+    defer cancel()
+
+    mongoStatus := "ok"
+    if err := db.Client.Ping(ctx, nil); err != nil {
+        mongoStatus = "unreachable"
+    }
+
+    status := map[string]interface{}{
+        "status":  "ok",
+        "service": "proxi-api",
+        "mongo":   mongoStatus,
+        "env":     cfg.AppEnv,
+    }
+    response.JSON(w, http.StatusOK, status)
+})
 
 	// Auth routes (public + profile)
 	r.Route("/api/auth", func(r chi.Router) {
@@ -107,9 +130,11 @@ func main() {
 
 	// Graceful shutdown
 	go func() {
-		log.Printf(" Proxi API running on %s", addr)
+		logger.Log.Info("Starting Proxi API",
+			zap.String("addr", addr),
+		)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server error: %v", err)
+			logger.Log.Error("Server error", zap.Error(err))
 		}
 	}()
 
@@ -117,9 +142,9 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("⏳ Shutting down gracefully...")
+	logger.Log.Info("⏳ Shutting down gracefully...")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	server.Shutdown(ctx)
-	log.Println(" Server stopped")
+	logger.Log.Info(" Server stopped")
 }
