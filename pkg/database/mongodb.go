@@ -15,21 +15,29 @@ type MongoDB struct {
 }
 
 func NewMongoDB(uri, dbName string) *MongoDB {
-    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second) // increased from 10s
     defer cancel()
 
-    clientOptions := options.Client().ApplyURI(uri)
+    // These options fix TLS issues with Atlas
+    clientOptions := options.Client().
+        ApplyURI(uri).
+        SetServerSelectionTimeout(30 * time.Second).
+        SetConnectTimeout(30 * time.Second)
+
     client, err := mongo.Connect(ctx, clientOptions)
     if err != nil {
-        log.Fatalf(" Failed to connect to MongoDB: %v", err)
+        log.Fatalf("❌ Failed to connect to MongoDB: %v", err)
     }
 
     // Ping to confirm connection
-    if err := client.Ping(ctx, nil); err != nil {
-        log.Fatalf(" MongoDB ping failed: %v", err)
+    pingCtx, pingCancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer pingCancel()
+
+    if err := client.Ping(pingCtx, nil); err != nil {
+        log.Fatalf("❌ MongoDB ping failed: %v", err)
     }
 
-    log.Println(" Connected to MongoDB")
+    log.Println("✅ Connected to MongoDB")
 
     return &MongoDB{
         Client: client,
@@ -40,7 +48,5 @@ func NewMongoDB(uri, dbName string) *MongoDB {
 func (m *MongoDB) Disconnect() {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
-    if err := m.Client.Disconnect(ctx); err != nil {
-        log.Printf("Error disconnecting MongoDB: %v", err)
-    }
+    m.Client.Disconnect(ctx)
 }
