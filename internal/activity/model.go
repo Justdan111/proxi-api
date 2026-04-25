@@ -9,7 +9,7 @@ import (
 type EventType string
 
 const (
-    EventTriggered EventType = "triggered"  // reminder fired
+    EventTriggered EventType = "triggered"  
     EventCreated   EventType = "created"
     EventDeleted   EventType = "deleted"
     EventToggled   EventType = "toggled"
