@@ -85,6 +85,6 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-    // JWT is stateless — client just discards the token
+   
     response.Success(w, http.StatusOK, "logged out", nil)
 }
