@@ -55,3 +55,9 @@ func (r *Repository) FindByID(ctx context.Context, id primitive.ObjectID) (*User
     }
     return &user, nil
 }
+
+func (r *Repository) Update(ctx context.Context, user *User) error {
+    user.UpdatedAt = time.Now()
+    _, err := r.collection.UpdateOne(ctx, bson.M{"_id": user.ID}, bson.M{"$set": user})
+    return err
+}

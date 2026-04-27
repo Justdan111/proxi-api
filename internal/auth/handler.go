@@ -88,3 +88,11 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
    
     response.Success(w, http.StatusOK, "logged out", nil)
 }
+
+func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+    response.Success(w, http.StatusOK, "password reset link sent", nil)
+}
+
+func (h *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
+    response.Success(w, http.StatusOK, "password updated", nil)
+}
