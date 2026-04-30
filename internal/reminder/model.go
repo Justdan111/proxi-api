@@ -33,7 +33,7 @@ type Reminder struct {
     UpdatedAt   time.Time          `bson:"updated_at"    json:"updatedAt"`
 }
 
-// ---- Input DTOs (what the client sends) ----
+//  Input DTOs (what the client sends) 
 
 type CreateInput struct {
     Title       string      `json:"title"       validate:"required,min=1,max=100"`
