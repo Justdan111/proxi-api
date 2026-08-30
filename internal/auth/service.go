@@ -184,8 +184,7 @@ func (s *Service) ResetPassword(ctx context.Context, email, newPassword string) 
 		return err
 	}
 
-	u.Password = string(hashed)
-	return s.userRepo.Update(ctx, u)
+	return s.userRepo.UpdatePassword(ctx, u.ID, string(hashed))
 }
 
 // DeleteAccount permanently erases a user and all of their data. Required by
