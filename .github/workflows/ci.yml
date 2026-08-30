@@ -46,5 +46,7 @@ jobs:
       - name: Build binary
         run: go build -o bin/server ./cmd/server
 
+      # Do not execute the binary here: it takes no flags, so any invocation
+      # boots the HTTP server and blocks until killed, hanging the job.
       - name: Verify binary
-        run: ./bin/server --version 2>/dev/null || echo "Binary built successfully"
+        run: test -x bin/server && echo "Binary built successfully"
