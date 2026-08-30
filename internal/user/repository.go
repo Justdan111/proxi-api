@@ -61,3 +61,14 @@ func (r *Repository) Update(ctx context.Context, user *User) error {
     _, err := r.collection.UpdateOne(ctx, bson.M{"_id": user.ID}, bson.M{"$set": user})
     return err
 }
+
+func (r *Repository) Delete(ctx context.Context, id primitive.ObjectID) error {
+    result, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
+    if err != nil {
+        return err
+    }
+    if result.DeletedCount == 0 {
+        return mongo.ErrNoDocuments
+    }
+    return nil
+}

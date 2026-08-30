@@ -41,8 +41,6 @@ func main() {
 
 	// Wire up dependencies
 	userRepo := user.NewRepository(db.DB)
-	authService := auth.NewService(userRepo, cfg.JWTSecret, cfg.JWTExpiryHours)
-	authHandler := auth.NewHandler(authService)
 
 	reminderRepo := reminder.NewRepository(db.DB)
 	reminderService := reminder.NewService(reminderRepo)
@@ -51,6 +49,12 @@ func main() {
 	activityRepo := activity.NewRepository(db.DB)
 	activityService := activity.NewService(activityRepo)
 	activityHandler := activity.NewHandler(activityService)
+
+	// Every repository holding user-owned data is registered as a purger so
+	// account deletion cascades to it. New user-scoped collections must be
+	// added here too.
+	authService := auth.NewService(userRepo, cfg.JWTSecret, cfg.JWTExpiryHours, reminderRepo, activityRepo)
+	authHandler := auth.NewHandler(authService)
 
 	// Set up router
 	r := chi.NewRouter()
@@ -96,6 +100,7 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(authService.Middleware)
 			r.Get("/me", authHandler.GetMe)
+			r.Delete("/me", authHandler.DeleteMe)
 		})
 	})
 

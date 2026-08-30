@@ -84,6 +84,24 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
     response.Success(w, http.StatusOK, "user profile", user)
 }
 
+// DELETE /api/auth/me
+//
+// Deletion is idempotent: a user that is already gone reports success, so a
+// double tap, or a retry after a partially-completed purge, still lets the
+// client finish its local teardown instead of stalling on a 404.
+func (h *Handler) DeleteMe(w http.ResponseWriter, r *http.Request) {
+    userID := GetUserID(r)
+
+    if err := h.service.DeleteAccount(r.Context(), userID); err != nil {
+        if !errors.Is(err, ErrUserNotFound) {
+            response.Error(w, http.StatusInternalServerError, "failed to delete account")
+            return
+        }
+    }
+
+    response.Success(w, http.StatusOK, "account deleted", nil)
+}
+
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
    
     response.Success(w, http.StatusOK, "logged out", nil)

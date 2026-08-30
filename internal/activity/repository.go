@@ -54,3 +54,13 @@ func (r *Repository) FindByUser(ctx context.Context, userID primitive.ObjectID, 
     }
     return activities, nil
 }
+
+// DeleteAllByUser removes every activity belonging to a user. Used when an
+// account is deleted; returns how many documents were removed.
+func (r *Repository) DeleteAllByUser(ctx context.Context, userID primitive.ObjectID) (int64, error) {
+    result, err := r.collection.DeleteMany(ctx, bson.M{"user_id": userID})
+    if err != nil {
+        return 0, err
+    }
+    return result.DeletedCount, nil
+}

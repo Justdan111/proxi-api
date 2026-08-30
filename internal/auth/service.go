@@ -25,17 +25,27 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+// UserDataPurger deletes every document a package owns for a single user.
+// reminder.Repository and activity.Repository both satisfy it. It is declared
+// here rather than importing those packages directly because both of them
+// import auth for GetUserID — importing them back would be a cycle.
+type UserDataPurger interface {
+	DeleteAllByUser(ctx context.Context, userID primitive.ObjectID) (int64, error)
+}
+
 type Service struct {
 	userRepo  *user.Repository
 	jwtSecret string
 	jwtExpiry int
+	purgers   []UserDataPurger
 }
 
-func NewService(userRepo *user.Repository, jwtSecret string, jwtExpiry int) *Service {
+func NewService(userRepo *user.Repository, jwtSecret string, jwtExpiry int, purgers ...UserDataPurger) *Service {
 	return &Service{
 		userRepo:  userRepo,
 		jwtSecret: jwtSecret,
 		jwtExpiry: jwtExpiry,
+		purgers:   purgers,
 	}
 }
 
@@ -176,4 +186,34 @@ func (s *Service) ResetPassword(ctx context.Context, email, newPassword string) 
 
 	u.Password = string(hashed)
 	return s.userRepo.Update(ctx, u)
+}
+
+// DeleteAccount permanently erases a user and all of their data. Required by
+// Apple App Store guideline 5.1.1(v) — the deletion is a hard delete, not a
+// deactivation.
+//
+// Owned data is purged before the user record itself. There is no transaction
+// (multi-document transactions need a replica set, which local standalone
+// Mongo is not), so ordering is what keeps a partial failure recoverable: if a
+// purge fails the account still exists and the client can safely retry. The
+// reverse order would strand orphaned documents no request could reach.
+func (s *Service) DeleteAccount(ctx context.Context, userID string) error {
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+
+	for _, p := range s.purgers {
+		if _, err := p.DeleteAllByUser(ctx, oid); err != nil {
+			return err
+		}
+	}
+
+	if err := s.userRepo.Delete(ctx, oid); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return ErrUserNotFound
+		}
+		return err
+	}
+	return nil
 }
