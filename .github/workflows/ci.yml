@@ -10,6 +10,8 @@ jobs:
   test:
     name: Test & Build
     runs-on: ubuntu-latest
+    # Without this a hung step runs to the 6 hour default before failing.
+    timeout-minutes: 10
 
     services:
       mongodb:
@@ -41,10 +43,12 @@ jobs:
           MONGODB_NAME: proxi_test
           JWT_SECRET: test-secret-key
           JWT_EXPIRY_HOURS: 72
-        run: go test -v -race -cover ./...
+        run: go test -v -race -cover -timeout 5m ./...
 
       - name: Build binary
         run: go build -o bin/server ./cmd/server
 
+      # Do not execute the binary here: it takes no flags, so any invocation
+      # boots the HTTP server and blocks until killed, hanging the job.
       - name: Verify binary
-        run: ./bin/server --version 2>/dev/null || echo "Binary built successfully"
+        run: test -x bin/server && echo "Binary built successfully"

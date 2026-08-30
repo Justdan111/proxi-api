@@ -370,6 +370,49 @@ Authorization: Bearer <token>
 
 ---
 
+#### `DELETE /api/auth/me` 🔒
+
+Permanently delete the authenticated user's account. Required by Apple App Store
+guideline 5.1.1(v).
+
+This is a **hard delete, not a deactivation**. It cascades to everything the user
+owns — their reminders and their activity log — and cannot be undone. The account
+is identified from the JWT, so a user can only ever delete themselves.
+
+No request body.
+
+**Headers**
+```
+Authorization: Bearer <token>
+```
+
+**Response** `200 OK`
+```json
+{
+  "success": true,
+  "message": "account deleted"
+}
+```
+
+The call is **idempotent** — deleting an account that is already gone also returns
+`200`, so a retry or a double tap still lets the client finish its local teardown.
+
+Owned data is purged before the user record itself, so a failure part-way through
+leaves the account intact and safe to retry rather than stranding orphaned
+documents.
+
+Note that JWTs are stateless: a token issued before deletion stays
+cryptographically valid until it expires. It grants no access to data, though —
+`GET /api/auth/me` returns `404` and every user-scoped collection returns empty.
+
+| Status | Meaning |
+|---|---|
+| `200` | Account deleted, or already did not exist |
+| `401` | Missing, invalid, or expired token |
+| `500` | Deletion failed part-way; the account still exists and the call can be retried |
+
+---
+
 ### Reminder Endpoints
 
 All reminder endpoints require authentication. Every query is automatically scoped to the logged-in user — users cannot access each other's reminders.

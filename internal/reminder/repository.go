@@ -115,3 +115,13 @@ func (r *Repository) ToggleEnabled(ctx context.Context, id, userID primitive.Obj
         "enabled": !current.Enabled,
     })
 }
+
+// DeleteAllByUser removes every reminder belonging to a user. Used when an
+// account is deleted; returns how many documents were removed.
+func (r *Repository) DeleteAllByUser(ctx context.Context, userID primitive.ObjectID) (int64, error) {
+    result, err := r.collection.DeleteMany(ctx, bson.M{"user_id": userID})
+    if err != nil {
+        return 0, err
+    }
+    return result.DeletedCount, nil
+}

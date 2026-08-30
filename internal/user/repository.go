@@ -56,8 +56,39 @@ func (r *Repository) FindByID(ctx context.Context, id primitive.ObjectID) (*User
     return &user, nil
 }
 
-func (r *Repository) Update(ctx context.Context, user *User) error {
-    user.UpdatedAt = time.Now()
-    _, err := r.collection.UpdateOne(ctx, bson.M{"_id": user.ID}, bson.M{"$set": user})
-    return err
+// Update writes only the named fields, mirroring the reminder repository. It
+// previously $set the whole User struct, which meant every caller had to hold a
+// fully-populated record or silently blank the fields it had not loaded, and
+// sent immutable _id and created_at on every write.
+func (r *Repository) Update(ctx context.Context, id primitive.ObjectID, fields bson.M) error {
+    if len(fields) == 0 {
+        return nil
+    }
+    fields["updated_at"] = time.Now()
+
+    result, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": fields})
+    if err != nil {
+        return err
+    }
+    if result.MatchedCount == 0 {
+        return mongo.ErrNoDocuments
+    }
+    return nil
+}
+
+// UpdatePassword stores an already-hashed password. Hashing stays in the
+// service layer; the repository never sees a plaintext password.
+func (r *Repository) UpdatePassword(ctx context.Context, id primitive.ObjectID, hashedPassword string) error {
+    return r.Update(ctx, id, bson.M{"password": hashedPassword})
+}
+
+func (r *Repository) Delete(ctx context.Context, id primitive.ObjectID) error {
+    result, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
+    if err != nil {
+        return err
+    }
+    if result.DeletedCount == 0 {
+        return mongo.ErrNoDocuments
+    }
+    return nil
 }
